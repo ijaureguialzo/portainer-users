@@ -15,10 +15,6 @@ inicial = click.prompt("Número de usuario inicial", default=1)
 final = click.prompt("Número de usuario final", default=20)
 contrasenya = click.prompt("Contraseña", hide_input=True, confirmation_prompt="Confirmar contraseña")
 
-print("--- Cuota de recursos --------------")
-cpus = click.prompt("CPUs", type=float, default=8)
-ram = click.prompt("RAM (GiB)", type=float, default=8)
-
 for i in range(inicial, final + 1):
     usuario = nombre + separador + "{0:0>2}".format(i)
 
@@ -45,11 +41,6 @@ for i in range(inicial, final + 1):
     data = {
         "Name": usuario,
         "Owner": usuario,
-        "ResourceQuota": {
-            "cpu": str(cpus),
-            "memory": f"{ram}Gi",
-            "enabled": True,
-        }
     }
 
     r = requests.post('https://kubernetes.arriaga.eu/api/kubernetes/1/namespaces', headers=headers, json=data)
