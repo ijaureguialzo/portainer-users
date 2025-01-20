@@ -23,6 +23,8 @@ Scripts para crear usuarios en Portainer.
 
 6. [Darles acceso a su propio namespace](https://kubernetes.arriaga.eu/#!/1/kubernetes/pools)
 
+7. Dar de alta el [registro privado](https://kubernetes.arriaga.eu/#!/1/kubernetes/registries) y darles acceso.
+
 ## Referencias
 
 - [Portainer API documentation](https://app.swaggerhub.com/apis/portainer/portainer-ce)
