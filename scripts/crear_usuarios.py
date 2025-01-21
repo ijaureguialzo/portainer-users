@@ -3,7 +3,7 @@ import sys
 import click
 import requests
 
-with open('.token', 'r') as f:
+with open('/root/.token', 'r') as f:
     token = f.read().strip()
 
 headers = {"X-API-Key": "{}".format(token)}
