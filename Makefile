@@ -1,5 +1,13 @@
 #!make
 
+ifeq (,$(wildcard ./.env))
+$(error No se encuentra el fichero .env)
+endif
+
+ifeq (,$(wildcard ./.token))
+$(error No se encuentra el fichero .token)
+endif
+
 help: _header
 	${info }
 	@echo Opciones:
