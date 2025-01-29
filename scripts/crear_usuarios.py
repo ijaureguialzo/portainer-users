@@ -1,7 +1,10 @@
+import os
 import sys
 
 import click
 import requests
+
+portainer_url = os.environ.get('PORTAINER_URL', 'http://localhost')
 
 with open('/root/.token', 'r') as f:
     token = f.read().strip()
@@ -27,7 +30,7 @@ for i in range(inicial, final + 1):
         "role": 2,
     }
 
-    r = requests.post('https://kubernetes.arriaga.eu/api/users', headers=headers, json=data)
+    r = requests.post(portainer_url + '/api/users', headers=headers, json=data)
 
     if r.status_code != requests.codes.ok:
         print(f'Error al crear el usuario: {r.json().get('message')}')
@@ -43,7 +46,7 @@ for i in range(inicial, final + 1):
         "Owner": usuario,
     }
 
-    r = requests.post('https://kubernetes.arriaga.eu/api/kubernetes/1/namespaces', headers=headers, json=data)
+    r = requests.post(portainer_url + '/api/kubernetes/1/namespaces', headers=headers, json=data)
 
     if r.status_code != requests.codes.ok:
         print(f'Error al crear el namespace: {r.json().get('message')}')
