@@ -33,7 +33,7 @@ for i in range(inicial, final + 1):
     r = requests.post(portainer_url + '/api/users', headers=headers, json=data)
 
     if r.status_code != requests.codes.ok:
-        print(f'Error al crear el usuario: {r.json().get('message')}')
+        print(f'Error al crear el usuario: {r}')
         sys.exit(1)
     else:
         print("Usuario creado correctamente")
@@ -43,13 +43,11 @@ for i in range(inicial, final + 1):
     # Crear el namespace
     data = {
         "Name": usuario,
-        "Owner": usuario,
     }
 
     r = requests.post(portainer_url + '/api/kubernetes/1/namespaces', headers=headers, json=data)
 
     if r.status_code != requests.codes.ok:
-        print(f'Error al crear el namespace: {r.json().get('message')}')
-        sys.exit(1)
+        print(f'Error al crear el namespace: {r}')
     else:
         print("Namespace creado correctamente")
