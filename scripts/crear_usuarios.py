@@ -55,8 +55,8 @@ def get_k8s_core_v1():
     return client.CoreV1Api()
 
 
-def actualizar_configmap(core_v1: client.CoreV1Api, user_id: int, namespace: str) -> None:
-    """Añade una entrada con user_id y namespace a la clave 'datos' del ConfigMap."""
+def actualizar_configmap(core_v1: client.CoreV1Api, entradas: dict[str, int]) -> None:
+    """Actualiza el ConfigMap de una sola vez con todas las entradas {namespace: user_id}."""
     try:
         cm = core_v1.read_namespaced_config_map(
             name=CONFIGMAP_NAME,
@@ -92,7 +92,8 @@ def actualizar_configmap(core_v1: client.CoreV1Api, user_id: int, namespace: str
     except json.JSONDecodeError:
         datos = {}
 
-    datos[namespace] = {"UserAccessPolicies": {str(user_id): {"RoleId": 0}}, "TeamAccessPolicies": {}}
+    for namespace, user_id in entradas.items():
+        datos[namespace] = {"UserAccessPolicies": {str(user_id): {"RoleId": 0}}, "TeamAccessPolicies": {}}
 
     if cm.data is None:
         cm.data = {}
@@ -103,7 +104,7 @@ def actualizar_configmap(core_v1: client.CoreV1Api, user_id: int, namespace: str
         namespace=CONFIGMAP_NAMESPACE,
         body=cm,
     )
-    print(f"ConfigMap '{CONFIGMAP_NAME}' actualizado: user_id={user_id}, namespace={namespace}")
+    print(f"ConfigMap '{CONFIGMAP_NAME}' actualizado con {len(entradas)} entradas.")
 
 
 # Inicializar cliente de Kubernetes una sola vez
@@ -116,6 +117,8 @@ inicial = click.prompt("Número de usuario inicial", default=1)
 final = click.prompt("Número de usuario final", default=20)
 contrasenya = click.prompt("Contraseña", hide_input=True, confirmation_prompt="Confirmar contraseña")
 
+entradas_configmap: dict[str, int] = {}
+
 for i in range(inicial, final + 1):
     usuario = nombre + separador + "{0:0>2}".format(i)
 
@@ -123,4 +126,7 @@ for i in range(inicial, final + 1):
 
     user_id = crear_usuario(usuario, contrasenya)
     crear_namespace(usuario)
-    actualizar_configmap(k8s_core_v1, user_id, usuario)
+    entradas_configmap[usuario] = user_id
+
+print("\nActualizando el ConfigMap con todos los usuarios creados...")
+actualizar_configmap(k8s_core_v1, entradas_configmap)
