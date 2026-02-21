@@ -4,7 +4,10 @@ import sys
 
 import click
 import requests
+import urllib3
 from kubernetes import client, config
+
+urllib3.disable_warnings()
 
 portainer_url = os.environ.get('PORTAINER_URL', 'http://localhost')
 
