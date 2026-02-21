@@ -42,7 +42,7 @@ def actualizar_configmap(core_v1: client.CoreV1Api, user_id: int, namespace: str
                     name=CONFIGMAP_NAME,
                     namespace=CONFIGMAP_NAMESPACE,
                 ),
-                data={CONFIGMAP_KEY: json.dumps([])},
+                data={CONFIGMAP_KEY: json.dumps({})},
             )
             core_v1.create_namespaced_config_map(
                 namespace=CONFIGMAP_NAMESPACE,
@@ -56,15 +56,15 @@ def actualizar_configmap(core_v1: client.CoreV1Api, user_id: int, namespace: str
             print(f'Error al leer el ConfigMap: {e}')
             return
 
-    datos_raw = (cm.data or {}).get(CONFIGMAP_KEY, '[]')
+    datos_raw = (cm.data or {}).get(CONFIGMAP_KEY, '{}')
     try:
         datos = json.loads(datos_raw)
-        if not isinstance(datos, list):
-            datos = [datos]
+        if not isinstance(datos, dict):
+            datos = {}
     except json.JSONDecodeError:
-        datos = []
+        datos = {}
 
-    datos.append({namespace: {"UserAccessPolicies": {user_id: {"RoleId": 0}}, "TeamAccessPolicies": {}}})
+    datos[namespace] = {"UserAccessPolicies": {str(user_id): {"RoleId": 0}}, "TeamAccessPolicies": {}}
 
     if cm.data is None:
         cm.data = {}
