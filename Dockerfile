@@ -4,7 +4,7 @@ FROM python:${PYTHON_VERSION}
 
 ENV DEBIAN_FRONTEND noninteractive
 
-RUN pip3 install click requests
+RUN pip3 install click requests kubernetes
 
 ENV PS1='\u@\h:\w\$\040'
 
