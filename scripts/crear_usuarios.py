@@ -21,6 +21,31 @@ with open('/root/.token', 'r') as f:
 headers = {"X-API-Key": "{}".format(token)}
 
 
+def crear_usuario(username: str, password: str) -> int:
+    """Crea un usuario en Portainer y devuelve su ID."""
+    data = {
+        "username": username,
+        "password": password,
+        "role": 2,
+    }
+    r = requests.post(portainer_url + '/api/users', headers=headers, json=data, verify=False)
+    if r.status_code != requests.codes.ok:
+        print(f'Error al crear el usuario: {r}')
+        sys.exit(1)
+    print("Usuario creado correctamente")
+    return r.json().get('Id')
+
+
+def crear_namespace(namespace: str) -> None:
+    """Crea un namespace en Kubernetes a través de Portainer."""
+    data = {"Name": namespace}
+    r = requests.post(portainer_url + '/api/kubernetes/1/namespaces', headers=headers, json=data, verify=False)
+    if r.status_code != requests.codes.ok:
+        print(f'Error al crear el namespace: {r}')
+    else:
+        print("Namespace creado correctamente")
+
+
 def get_k8s_core_v1():
     """Carga la configuración de Kubernetes y devuelve un cliente CoreV1Api."""
     try:
@@ -96,34 +121,6 @@ for i in range(inicial, final + 1):
 
     print(f"\nCreando el usuario {usuario} y sus recursos asociados...\n")
 
-    # Crear el usuario
-    data = {
-        "username": usuario,
-        "password": contrasenya,
-        "role": 2,
-    }
-
-    r = requests.post(portainer_url + '/api/users', headers=headers, json=data)
-
-    if r.status_code != requests.codes.ok:
-        print(f'Error al crear el usuario: {r}')
-        sys.exit(1)
-    else:
-        print("Usuario creado correctamente")
-
-    user_id = r.json().get('Id')
-
-    # Crear el namespace
-    data = {
-        "Name": usuario,
-    }
-
-    r = requests.post(portainer_url + '/api/kubernetes/1/namespaces', headers=headers, json=data)
-
-    if r.status_code != requests.codes.ok:
-        print(f'Error al crear el namespace: {r}')
-    else:
-        print("Namespace creado correctamente")
-
-    # Actualizar el ConfigMap con el user_id y el namespace creados
+    user_id = crear_usuario(usuario, contrasenya)
+    crear_namespace(usuario)
     actualizar_configmap(k8s_core_v1, user_id, usuario)
