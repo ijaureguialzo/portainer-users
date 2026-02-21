@@ -10,3 +10,4 @@ services:
     volumes:
       - ./.token:/root/.token:ro
       - ./scripts:/scripts:ro
+      - ./.kubeconfig:/root/.kube/config:ro
