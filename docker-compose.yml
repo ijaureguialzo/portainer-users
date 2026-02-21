@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile
       args:
         - PYTHON_VERSION=${PYTHON_VERSION:-3.12}
+    hostname: workspace
     environment:
       - PORTAINER_URL=${PORTAINER_URL}
     volumes:
