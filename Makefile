@@ -15,6 +15,7 @@ help: _header
 	@echo build
 	@echo --------------------------------
 	@echo crear-usuarios
+	@echo borrar-usuarios
 	@echo --------------------------------
 	@echo workspace
 	@echo clean
@@ -30,6 +31,9 @@ build:
 
 crear-usuarios:
 	@docker compose run -q --rm workspace python3 crear_usuarios.py
+
+borrar-usuarios:
+	@docker compose run -q --rm workspace python3 borrar_usuarios.py
 
 workspace:
 	@docker compose run -q --rm workspace /bin/bash
