@@ -55,8 +55,9 @@ def borrar_usuario(username: str) -> bool:
 def borrar_namespace(namespace: str) -> bool:
     """Elimina un namespace en Kubernetes a través de Portainer. Devuelve True si se borró correctamente."""
     r = requests.delete(
-        portainer_url + f'/api/kubernetes/1/namespaces/{namespace}',
+        portainer_url + '/api/kubernetes/1/namespaces',
         headers=headers,
+        json=[namespace],
         verify=False,
     )
     if r.status_code not in (requests.codes.ok, requests.codes.no_content):
