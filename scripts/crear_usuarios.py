@@ -216,58 +216,6 @@ def actualizar_cluster_role_binding(rbac_v1: client.RbacAuthorizationV1Api, inst
     print(f"ClusterRoleBinding '{CLUSTER_ROLE_BINDING_NAME}' actualizado: ServiceAccount={sa_name}")
 
 
-# Inicializar cliente de Kubernetes una sola vez
-k8s_core_v1 = get_k8s_core_v1()
-
-
-def crear_token_service_account(core_v1: client.CoreV1Api, instance_id: str, user_id: int, sa_name: str) -> None:
-    """Crea un Secret de tipo service-account-token para la SA."""
-    secret_name = f"{instance_id}-{sa_name}-secret"
-    secret = client.V1Secret(
-        metadata=client.V1ObjectMeta(
-            name=secret_name,
-            namespace=CONFIGMAP_NAMESPACE,
-            annotations={
-                "kubernetes.io/service-account.name": sa_name,
-            },
-        ),
-        type="kubernetes.io/service-account-token",
-    )
-    try:
-        core_v1.create_namespaced_secret(namespace=CONFIGMAP_NAMESPACE, body=secret)
-        print(f"Secret '{secret_name}' creado correctamente")
-    except client.exceptions.ApiException as e:
-        if e.status == 409:
-            print(f"Secret '{secret_name}' ya existe, omitiendo creación")
-        else:
-            print(f'Error al crear el Secret: {e}')
-            sys.exit(1)
-
-
-def actualizar_cluster_role_binding(rbac_v1: client.RbacAuthorizationV1Api, instance_id: str, user_id: int) -> None:
-    """Añade una ServiceAccount al ClusterRoleBinding portainer-crb-user."""
-    sa_name = f"portainer-sa-user-{instance_id}-{user_id}"
-    try:
-        crb = rbac_v1.read_cluster_role_binding(name=CLUSTER_ROLE_BINDING_NAME)
-    except client.exceptions.ApiException as e:
-        print(f'Error al leer el ClusterRoleBinding: {e}')
-        return
-
-    subjects = crb.subjects or []
-    # Evitar duplicados
-    if not any(s.name == sa_name for s in subjects):
-        nuevo_subject = {
-            "kind": "ServiceAccount",
-            "name": sa_name,
-            "namespace": CONFIGMAP_NAMESPACE,
-        }
-        subjects.append(nuevo_subject)
-    crb.subjects = subjects
-
-    rbac_v1.replace_cluster_role_binding(name=CLUSTER_ROLE_BINDING_NAME, body=crb)
-    print(f"ClusterRoleBinding '{CLUSTER_ROLE_BINDING_NAME}' actualizado: ServiceAccount={sa_name}")
-
-
 # Inicializar clientes de Kubernetes una sola vez
 k8s_core_v1, k8s_rbac_v1 = get_k8s_clients()
 
