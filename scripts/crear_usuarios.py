@@ -49,6 +49,33 @@ def crear_usuario(username: str, password: str) -> int:
     return r.json().get('Id')
 
 
+def asignar_acceso_endpoint(user_id: int) -> None:
+    """Añade el usuario al endpoint 1 actualizando UserAccessPolicies via PUT /api/endpoints/1."""
+    # Obtener la configuración actual del endpoint
+    r = requests.get(portainer_url + '/api/endpoints/1', headers=headers, verify=False)
+    if r.status_code != requests.codes.ok:
+        print(f'Error al obtener el endpoint: {r}')
+        sys.exit(1)
+
+    endpoint_data = r.json()
+    policies = endpoint_data.get('UserAccessPolicies', {})
+
+    # Añadir el nuevo usuario con RoleId 0
+    policies[str(user_id)] = {"RoleId": 0}
+
+    # Enviar la actualización
+    r = requests.put(
+        portainer_url + '/api/endpoints/1',
+        headers=headers,
+        json={"UserAccessPolicies": policies},
+        verify=False,
+    )
+    if r.status_code != requests.codes.ok:
+        print(f'Error al asignar acceso al endpoint: {r}')
+        sys.exit(1)
+    print(f"Acceso al endpoint asignado para el usuario {user_id}")
+
+
 def crear_namespace(namespace: str) -> None:
     """Crea un namespace en Kubernetes a través de Portainer."""
     data = {"Name": namespace}
@@ -236,6 +263,7 @@ for i in range(inicial, final + 1):
     print(f"\nCreando el usuario {usuario} y sus recursos asociados...\n")
 
     user_id = crear_usuario(usuario, contrasenya)
+    asignar_acceso_endpoint(user_id)
     sa_name = crear_service_account(k8s_core_v1, instance_id, user_id)
     crear_token_service_account(k8s_core_v1, instance_id, user_id, sa_name)
     actualizar_cluster_role_binding(k8s_rbac_v1, instance_id, user_id)
