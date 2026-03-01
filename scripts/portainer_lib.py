@@ -317,7 +317,10 @@ def eliminar_entradas_configmap(cfg: PortainerConfig, core_v1: client.CoreV1Api,
                     eliminados.append(namespace)
 
             if not eliminados:
-                print("No se encontraron entradas en el ConfigMap para los namespaces indicados.")
+                print(
+                    f"Aviso: ninguno de los namespaces indicados ({', '.join(namespaces)}) "
+                    f"tenía entrada en el ConfigMap '{cfg.configmap_name}'."
+                )
                 return
 
             patch_body = {"data": {cfg.configmap_key: json.dumps(datos)}}

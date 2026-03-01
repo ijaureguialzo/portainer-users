@@ -51,6 +51,9 @@ for usuario in usuarios:
         namespaces_borrados.append(usuario)
 
 print("\nActualizando el ConfigMap para eliminar las entradas borradas...")
-eliminar_entradas_configmap(cfg, k8s_core_v1, usuarios)
+if namespaces_borrados:
+    eliminar_entradas_configmap(cfg, k8s_core_v1, namespaces_borrados)
+else:
+    print("No se borró ningún namespace; no hay entradas que eliminar del ConfigMap.")
 
 print("\n¡Proceso de borrado finalizado!")
