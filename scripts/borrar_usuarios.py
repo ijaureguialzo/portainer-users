@@ -27,7 +27,10 @@ final = click.prompt("Número de usuario final", default=20)
 
 usuarios = generar_nombres_usuarios(nombre, separador, inicial, final)
 print(f"\nSe van a borrar {len(usuarios)} usuario(s): {usuarios[0]} … {usuarios[-1]}")
-click.confirm("¿Confirmas el borrado?", abort=True)
+respuesta = click.prompt("¿Confirmas el borrado? [s/N]", default="N")
+if respuesta.lower() not in ("s", "si", "sí"):
+    print("Operación cancelada.")
+    raise SystemExit(0)
 
 namespaces_borrados: list[str] = []
 
