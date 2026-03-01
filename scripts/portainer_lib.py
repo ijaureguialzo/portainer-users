@@ -403,7 +403,7 @@ def crear_token_service_account(
 
 
 def _obtener_o_crear_crb(
-    cfg: PortainerConfig, rbac_v1: client.RbacAuthorizationV1Api
+    rbac_v1: client.RbacAuthorizationV1Api
 ) -> client.V1ClusterRoleBinding | None:
     """Lee el ClusterRoleBinding; si no existe, lo crea y lo devuelve.
 
@@ -453,7 +453,7 @@ def actualizar_cluster_role_binding(
     Si el ClusterRoleBinding no existe, lo crea antes de añadir el subject.
     """
     sa_name = f"portainer-sa-user-{instance_id}-{user_id}"
-    crb = _obtener_o_crear_crb(cfg, rbac_v1)
+    crb = _obtener_o_crear_crb(rbac_v1)
     if crb is None:
         return
 
