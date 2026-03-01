@@ -44,7 +44,7 @@ for usuario in usuarios:
         revocar_acceso_endpoint(cfg, user_id)
         borrar_token_service_account(cfg, k8s_core_v1, instance_id, user_id)
         borrar_service_account(cfg, k8s_core_v1, instance_id, user_id)
-        eliminar_subject_cluster_role_binding(cfg, k8s_rbac_v1, instance_id, user_id)
+        eliminar_subject_cluster_role_binding(k8s_rbac_v1, instance_id, user_id)
 
     borrar_usuario(cfg, usuario)
     if borrar_namespace(cfg, usuario):

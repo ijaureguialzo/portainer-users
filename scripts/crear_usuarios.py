@@ -33,7 +33,7 @@ for usuario in generar_nombres_usuarios(nombre, separador, inicial, final):
     user_id = crear_usuario(cfg, usuario, contrasenya)
     asignar_acceso_endpoint(cfg, user_id)
     sa_name = crear_service_account(cfg, k8s_core_v1, instance_id, user_id)
-    crear_token_service_account(cfg, k8s_core_v1, instance_id, user_id, sa_name)
+    crear_token_service_account(cfg, k8s_core_v1, instance_id, sa_name)
     actualizar_cluster_role_binding(cfg, k8s_rbac_v1, instance_id, user_id)
     crear_namespace(cfg, usuario)
     entradas_configmap[usuario] = user_id

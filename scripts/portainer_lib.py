@@ -373,7 +373,7 @@ def crear_service_account(
 
 
 def crear_token_service_account(
-    cfg: PortainerConfig, core_v1: client.CoreV1Api, instance_id: str, user_id: int, sa_name: str
+    cfg: PortainerConfig, core_v1: client.CoreV1Api, instance_id: str, sa_name: str
 ) -> None:
     """Crea un Secret de tipo service-account-token para la SA."""
     secret_name = f"{instance_id}-{sa_name}-secret"
@@ -501,7 +501,7 @@ def borrar_token_service_account(
 
 
 def eliminar_subject_cluster_role_binding(
-    cfg: PortainerConfig, rbac_v1: client.RbacAuthorizationV1Api, instance_id: str, user_id: int
+    rbac_v1: client.RbacAuthorizationV1Api, instance_id: str, user_id: int
 ) -> bool:
     """Elimina la ServiceAccount del usuario del ClusterRoleBinding portainer-crb-user.
 
