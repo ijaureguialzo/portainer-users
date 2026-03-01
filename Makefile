@@ -31,10 +31,10 @@ build:
 	@docker compose build
 
 crear-usuarios:
-	@docker compose run -q --rm workspace python3 crear_usuarios.py
+	@docker compose run -q --rm workspace python3 scripts/crear_usuarios.py
 
 borrar-usuarios:
-	@docker compose run -q --rm workspace python3 borrar_usuarios.py
+	@docker compose run -q --rm workspace python3 scripts/borrar_usuarios.py
 
 workspace:
 	@docker compose run -q --rm workspace /bin/bash

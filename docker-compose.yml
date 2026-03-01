@@ -10,5 +10,5 @@ services:
       - PORTAINER_URL=${PORTAINER_URL}
     volumes:
       - ./.token:/root/.token:ro
-      - ./scripts:/scripts:ro
+      - .:/app:ro
       - ./.kubeconfig:/root/.kube/config:ro
