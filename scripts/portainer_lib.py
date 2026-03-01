@@ -421,3 +421,111 @@ def actualizar_cluster_role_binding(
 
     rbac_v1.replace_cluster_role_binding(name=CLUSTER_ROLE_BINDING_NAME, body=crb)
     print(f"ClusterRoleBinding '{CLUSTER_ROLE_BINDING_NAME}' actualizado: ServiceAccount={sa_name}")
+
+
+def revocar_acceso_endpoint(cfg: PortainerConfig, user_id: int) -> bool:
+    """Elimina el acceso del usuario al endpoint 1 borrando su entrada de UserAccessPolicies.
+
+    Devuelve True si se revocó correctamente.
+    """
+    r = requests.get(cfg.portainer_url + '/api/endpoints/1', headers=cfg.headers, verify=False)
+    if r.status_code != requests.codes.ok:
+        print(f'  Error al obtener el endpoint: {r}')
+        return False
+
+    endpoint_data = r.json()
+    policies = endpoint_data.get('UserAccessPolicies', {})
+    clave = str(user_id)
+
+    if clave not in policies:
+        print(f'  El usuario {user_id} no tenía acceso al endpoint, omitiendo.')
+        return True
+
+    del policies[clave]
+
+    r = requests.put(
+        cfg.portainer_url + '/api/endpoints/1',
+        headers=cfg.headers,
+        json={"UserAccessPolicies": policies},
+        verify=False,
+    )
+    if r.status_code != requests.codes.ok:
+        print(f'  Error al revocar acceso al endpoint para el usuario {user_id}: {r.status_code} {r.text}')
+        return False
+
+    print(f'  Acceso al endpoint revocado para el usuario {user_id}.')
+    return True
+
+
+def borrar_service_account(
+    cfg: PortainerConfig, core_v1: client.CoreV1Api, instance_id: str, user_id: int
+) -> bool:
+    """Elimina la ServiceAccount del usuario en el namespace de Portainer.
+
+    Devuelve True si se borró correctamente.
+    """
+    sa_name = f"portainer-sa-user-{instance_id}-{user_id}"
+    try:
+        core_v1.delete_namespaced_service_account(name=sa_name, namespace=cfg.configmap_namespace)
+        print(f"  ServiceAccount '{sa_name}' borrada correctamente.")
+        return True
+    except client.exceptions.ApiException as e:
+        if e.status == 404:
+            print(f"  ServiceAccount '{sa_name}' no encontrada, omitiendo.")
+            return True
+        else:
+            print(f'  Error al borrar la ServiceAccount "{sa_name}": {e}')
+            return False
+
+
+def borrar_token_service_account(
+    cfg: PortainerConfig, core_v1: client.CoreV1Api, instance_id: str, user_id: int
+) -> bool:
+    """Elimina el Secret de tipo service-account-token asociado al usuario.
+
+    Devuelve True si se borró correctamente.
+    """
+    sa_name = f"portainer-sa-user-{instance_id}-{user_id}"
+    secret_name = f"{instance_id}-{sa_name}-secret"
+    try:
+        core_v1.delete_namespaced_secret(name=secret_name, namespace=cfg.configmap_namespace)
+        print(f"  Secret '{secret_name}' borrado correctamente.")
+        return True
+    except client.exceptions.ApiException as e:
+        if e.status == 404:
+            print(f"  Secret '{secret_name}' no encontrado, omitiendo.")
+            return True
+        else:
+            print(f'  Error al borrar el Secret "{secret_name}": {e}')
+            return False
+
+
+def eliminar_subject_cluster_role_binding(
+    cfg: PortainerConfig, rbac_v1: client.RbacAuthorizationV1Api, instance_id: str, user_id: int
+) -> bool:
+    """Elimina la ServiceAccount del usuario del ClusterRoleBinding portainer-crb-user.
+
+    Devuelve True si se actualizó correctamente.
+    """
+    sa_name = f"portainer-sa-user-{instance_id}-{user_id}"
+    try:
+        crb = rbac_v1.read_cluster_role_binding(name=CLUSTER_ROLE_BINDING_NAME)
+    except client.exceptions.ApiException as e:
+        print(f'  Error al leer el ClusterRoleBinding: {e}')
+        return False
+
+    subjects = crb.subjects or []
+    nuevos_subjects = [s for s in subjects if s.name != sa_name]
+
+    if len(nuevos_subjects) == len(subjects):
+        print(f"  ServiceAccount '{sa_name}' no encontrada en el ClusterRoleBinding, omitiendo.")
+        return True
+
+    crb.subjects = nuevos_subjects
+    try:
+        rbac_v1.replace_cluster_role_binding(name=CLUSTER_ROLE_BINDING_NAME, body=crb)
+        print(f"  ClusterRoleBinding '{CLUSTER_ROLE_BINDING_NAME}' actualizado: eliminada ServiceAccount={sa_name}")
+        return True
+    except client.exceptions.ApiException as e:
+        print(f'  Error al actualizar el ClusterRoleBinding: {e}')
+        return False
