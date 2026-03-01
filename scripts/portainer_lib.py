@@ -17,6 +17,7 @@ urllib3.disable_warnings()
 # ---------------------------------------------------------------------------
 
 CLUSTER_ROLE_BINDING_NAME = 'portainer-crb-user'
+CLUSTER_ROLE_NAME = 'portainer-cr-user'
 
 
 @dataclass
@@ -401,15 +402,59 @@ def crear_token_service_account(
             sys.exit(1)
 
 
+def _obtener_o_crear_crb(
+    cfg: PortainerConfig, rbac_v1: client.RbacAuthorizationV1Api
+) -> client.V1ClusterRoleBinding | None:
+    """Lee el ClusterRoleBinding; si no existe, lo crea y lo devuelve.
+
+    Devuelve el objeto CRB o None si se produjo un error irrecuperable.
+    """
+    try:
+        return rbac_v1.read_cluster_role_binding(name=CLUSTER_ROLE_BINDING_NAME)
+    except client.exceptions.ApiException as e:
+        if e.status != 404:
+            print(f'Error al leer el ClusterRoleBinding: {e}')
+            return None
+
+    # No existe → crearlo
+    nuevo_crb = client.V1ClusterRoleBinding(
+        metadata=client.V1ObjectMeta(name=CLUSTER_ROLE_BINDING_NAME),
+        role_ref=client.V1RoleRef(
+            api_group="rbac.authorization.k8s.io",
+            kind="ClusterRole",
+            name=CLUSTER_ROLE_NAME,
+        ),
+        subjects=[],
+    )
+    try:
+        crb = rbac_v1.create_cluster_role_binding(body=nuevo_crb)
+        print(
+            f"ClusterRoleBinding '{CLUSTER_ROLE_BINDING_NAME}' creado "
+            f"(referenciando ClusterRole '{CLUSTER_ROLE_NAME}')."
+        )
+        return crb
+    except client.exceptions.ApiException as e:
+        if e.status == 409:
+            # Creado por otra instancia concurrente; leerlo de nuevo
+            try:
+                return rbac_v1.read_cluster_role_binding(name=CLUSTER_ROLE_BINDING_NAME)
+            except client.exceptions.ApiException as e2:
+                print(f'Error al releer el ClusterRoleBinding tras conflicto: {e2}')
+                return None
+        print(f'Error al crear el ClusterRoleBinding: {e}')
+        return None
+
+
 def actualizar_cluster_role_binding(
     cfg: PortainerConfig, rbac_v1: client.RbacAuthorizationV1Api, instance_id: str, user_id: int
 ) -> None:
-    """Añade una ServiceAccount al ClusterRoleBinding portainer-crb-user."""
+    """Añade una ServiceAccount al ClusterRoleBinding portainer-crb-user.
+
+    Si el ClusterRoleBinding no existe, lo crea antes de añadir el subject.
+    """
     sa_name = f"portainer-sa-user-{instance_id}-{user_id}"
-    try:
-        crb = rbac_v1.read_cluster_role_binding(name=CLUSTER_ROLE_BINDING_NAME)
-    except client.exceptions.ApiException as e:
-        print(f'Error al leer el ClusterRoleBinding: {e}')
+    crb = _obtener_o_crear_crb(cfg, rbac_v1)
+    if crb is None:
         return
 
     subjects = crb.subjects or []
@@ -508,12 +553,16 @@ def eliminar_subject_cluster_role_binding(
 ) -> bool:
     """Elimina la ServiceAccount del usuario del ClusterRoleBinding portainer-crb-user.
 
-    Devuelve True si se actualizó correctamente.
+    Devuelve True si se actualizó correctamente (o si el CRB no existía / el subject no estaba).
     """
     sa_name = f"portainer-sa-user-{instance_id}-{user_id}"
+
     try:
         crb = rbac_v1.read_cluster_role_binding(name=CLUSTER_ROLE_BINDING_NAME)
     except client.exceptions.ApiException as e:
+        if e.status == 404:
+            print(f"  ClusterRoleBinding '{CLUSTER_ROLE_BINDING_NAME}' no existe, no hay nada que limpiar.")
+            return True
         print(f'  Error al leer el ClusterRoleBinding: {e}')
         return False
 
