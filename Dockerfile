@@ -4,8 +4,12 @@ FROM python:${PYTHON_VERSION}
 
 ENV DEBIAN_FRONTEND noninteractive
 
-RUN pip3 install click requests kubernetes
+RUN pip3 install poetry
 
-ENV PS1='\u@\h:\w\$\040'
+COPY ./pyproject.toml /pyproject.toml
 
 WORKDIR /app
+
+RUN poetry install --no-root
+
+ENV PS1='\u@\h:\w\$\040'
