@@ -5,7 +5,6 @@ from portainer_lib import (
     borrar_service_account,
     borrar_token_service_account,
     borrar_usuario,
-    eliminar_entradas_configmap,
     eliminar_subject_cluster_role_binding,
     generar_nombres_usuarios,
     get_instance_id,
@@ -47,13 +46,6 @@ for usuario in usuarios:
         eliminar_subject_cluster_role_binding(k8s_rbac_v1, instance_id, user_id)
 
     borrar_usuario(cfg, usuario)
-    if borrar_namespace(cfg, usuario):
-        namespaces_borrados.append(usuario)
-
-print("\nActualizando el ConfigMap para eliminar las entradas borradas...")
-if namespaces_borrados:
-    eliminar_entradas_configmap(cfg, k8s_core_v1, namespaces_borrados)
-else:
-    print("No se borró ningún namespace; no hay entradas que eliminar del ConfigMap.")
+    borrar_namespace(cfg, usuario)
 
 print("\n¡Proceso de borrado finalizado!")
