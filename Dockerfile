@@ -6,7 +6,7 @@ ENV DEBIAN_FRONTEND noninteractive
 
 RUN pip3 install poetry
 
-COPY ./pyproject.toml /pyproject.toml
+COPY ./pyproject.toml /app/pyproject.toml
 
 WORKDIR /app
 

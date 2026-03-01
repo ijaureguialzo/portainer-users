@@ -31,16 +31,16 @@ build:
 	@docker compose build
 
 crear-usuarios:
-	@docker compose run -q --rm workspace python3 scripts/crear_usuarios.py
+	@docker compose run -q --rm workspace poetry run python3 scripts/crear_usuarios.py
 
 borrar-usuarios:
-	@docker compose run -q --rm workspace python3 scripts/borrar_usuarios.py
+	@docker compose run -q --rm workspace poetry run python3 scripts/borrar_usuarios.py
 
 workspace:
 	@docker compose run -q --rm workspace /bin/bash
 
 test:
-	@python3 -m pytest
+	@docker compose run -q --rm workspace poetry run python3 -m pytest
 
 clean:
 	@docker compose down -v --remove-orphans
