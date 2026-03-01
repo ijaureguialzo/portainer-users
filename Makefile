@@ -17,7 +17,6 @@ help: _header
 	@echo crear-usuarios
 	@echo borrar-usuarios
 	@echo --------------------------------
-	@echo test
 	@echo workspace
 	@echo clean
 	@echo --------------------------------
@@ -38,9 +37,6 @@ borrar-usuarios:
 
 workspace:
 	@docker compose run -q --rm workspace /bin/bash
-
-test:
-	@docker compose run -q --rm workspace poetry run python3 -m pytest
 
 clean:
 	@docker compose down -v --remove-orphans
