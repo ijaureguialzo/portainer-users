@@ -4,6 +4,7 @@ import click
 
 from portainer_lib import (
     configurar_ajustes,
+    configurar_endpoint,
     load_config,
     marcar_namespaces_sistema,
 )
@@ -39,6 +40,26 @@ if respuesta.lower() not in ("s", "si", "sí"):
 
 print("\nAplicando ajustes en Portainer...")
 configurar_ajustes(cfg, AJUSTES)
+
+# ---------------------------------------------------------------------------
+# Configuración del endpoint
+# ---------------------------------------------------------------------------
+print("\n--- Configuración del endpoint de Portainer ---")
+print("\nSe van a actualizar las siguientes propiedades del endpoint 1:")
+print(f"  Name                       = {cfg.endpoint_name}")
+print(f"  PublicURL                  = {cfg.endpoint_public_url}")
+print(f"  RestrictDefaultNamespace   = {cfg.endpoint_restrict_default_namespace}")
+print(f"  AllowNoneIngressClass      = {cfg.endpoint_allow_none_ingress_class}")
+respuesta = click.prompt("¿Confirmas el cambio? [s/N]", default="N")
+if respuesta.lower() not in ("s", "si", "sí"):
+    print("Operación cancelada.")
+    raise SystemExit(0)
+
+print("\nAplicando configuración del endpoint en Portainer...")
+ok_endpoint = configurar_endpoint(cfg)
+if not ok_endpoint:
+    print("Error al configurar el endpoint. Revisa los mensajes anteriores.")
+    raise SystemExit(1)
 
 # ---------------------------------------------------------------------------
 # Marcar namespaces de sistema

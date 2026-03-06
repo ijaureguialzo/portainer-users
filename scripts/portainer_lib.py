@@ -37,6 +37,10 @@ class PortainerConfig:
     token: str
     kubectl_shell_image: str = ''
     system_namespaces: list[str] = field(default_factory=list)
+    endpoint_name: str = ''
+    endpoint_public_url: str = ''
+    endpoint_restrict_default_namespace: bool = True
+    endpoint_allow_none_ingress_class: bool = True
     headers: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -63,6 +67,14 @@ def load_config(token_path: str = '/root/.token') -> PortainerConfig:
             for ns in os.environ.get('NON_SYSTEM_NAMESPACES', '').split(',')
             if ns.strip()
         ],
+        endpoint_name=os.environ.get('ENDPOINT_NAME', 'local'),
+        endpoint_public_url=os.environ.get('ENDPOINT_PUBLIC_URL', ''),
+        endpoint_restrict_default_namespace=os.environ.get(
+            'ENDPOINT_RESTRICT_DEFAULT_NAMESPACE', 'true'
+        ).lower() == 'true',
+        endpoint_allow_none_ingress_class=os.environ.get(
+            'ENDPOINT_ALLOW_NONE_INGRESS_CLASS', 'true'
+        ).lower() == 'true',
     )
 
 
@@ -202,7 +214,36 @@ def configurar_ajustes(cfg: PortainerConfig, ajustes: dict) -> bool:
     return True
 
 
-def crear_namespace(cfg: PortainerConfig, namespace: str) -> None:
+def configurar_endpoint(cfg: PortainerConfig, endpoint_id: int = 1) -> bool:
+    """Actualiza las propiedades del endpoint de Portainer via PUT /api/endpoints/{id}.
+
+    Aplica los valores de Name, PublicURL y la configuración de Kubernetes
+    (RestrictDefaultNamespace, AllowNoneIngressClass) leídos desde cfg.
+
+    Devuelve True si la actualización se realizó correctamente.
+    """
+    payload = {
+        "Name": cfg.endpoint_name,
+        "PublicURL": cfg.endpoint_public_url,
+        "Kubernetes": {
+            "Configuration": {
+                "RestrictDefaultNamespace": cfg.endpoint_restrict_default_namespace,
+                "AllowNoneIngressClass": cfg.endpoint_allow_none_ingress_class,
+            }
+        },
+    }
+    r = requests.put(
+        cfg.portainer_url + f'/api/endpoints/{endpoint_id}',
+        headers=cfg.headers,
+        json=payload,
+        verify=False,
+    )
+    if r.status_code not in (requests.codes.ok, requests.codes.no_content):
+        print(f'Error al actualizar el endpoint {endpoint_id}: {r.status_code} {r.text}')
+        return False
+
+    print(f"Endpoint {endpoint_id} actualizado correctamente.")
+    return True
     """Crea un namespace en Kubernetes a través de Portainer."""
     data = {"Name": namespace}
     r = requests.post(
