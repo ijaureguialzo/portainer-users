@@ -9,6 +9,9 @@ services:
     environment:
       - PORTAINER_URL=${PORTAINER_URL}
     volumes:
-      - ./.token:/root/.token:ro
       - .:/app:ro
       - ./.kubeconfig:/root/.kube/config:ro
+      - secrets:/secrets
+
+volumes:
+  secrets:

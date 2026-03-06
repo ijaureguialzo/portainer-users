@@ -45,10 +45,13 @@ class PortainerConfig:
 
     def __post_init__(self) -> None:
         if not self.headers:
-            self.headers = {"X-API-Key": self.token}
+            if self.token.startswith('ptr_'):
+                self.headers = {"X-API-Key": self.token}
+            else:
+                self.headers = {"Authorization": f"Bearer {self.token}"}
 
 
-def load_config(token_path: str = '/root/.token') -> PortainerConfig:
+def load_config(token_path: str = '/secrets/.token') -> PortainerConfig:
     """Carga la configuración desde variables de entorno y el fichero de token."""
     with open(token_path, 'r') as f:
         token = f.read().strip()

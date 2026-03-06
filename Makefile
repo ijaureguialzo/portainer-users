@@ -4,16 +4,13 @@ ifeq (,$(wildcard ./.env))
 $(error No se encuentra el fichero .env)
 endif
 
-ifeq (,$(wildcard ./.token))
-$(error No se encuentra el fichero .token)
-endif
-
 help: _header
-	${info }
+	${info}
 	@echo Opciones:
 	@echo --------------------------------
 	@echo build
 	@echo --------------------------------
+	@echo init
 	@echo crear-usuarios
 	@echo borrar-usuarios
 	@echo configurar
@@ -29,6 +26,9 @@ _header:
 
 build:
 	@docker compose build
+
+init:
+	@docker compose run -q --rm workspace poetry run python3 scripts/init.py
 
 crear-usuarios:
 	@docker compose run -q --rm workspace poetry run python3 scripts/crear_usuarios.py
