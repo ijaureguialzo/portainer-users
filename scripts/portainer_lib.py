@@ -8,9 +8,12 @@ from dataclasses import dataclass, field
 
 import requests
 import urllib3
+from dotenv import load_dotenv
 from kubernetes import client, config
 
 urllib3.disable_warnings()
+
+load_dotenv()
 
 # ---------------------------------------------------------------------------
 # Configuración
@@ -31,6 +34,7 @@ class PortainerConfig:
     k8s_timeout: int
     k8s_max_retries: int
     token: str
+    kubectl_shell_image: str = ''
     headers: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -51,6 +55,7 @@ def load_config(token_path: str = '/root/.token') -> PortainerConfig:
         k8s_timeout=int(os.environ.get('K8S_TIMEOUT', '30')),
         k8s_max_retries=int(os.environ.get('K8S_MAX_RETRIES', '5')),
         token=token,
+        kubectl_shell_image=os.environ.get('KUBECTL_SHELL_IMAGE', ''),
     )
 
 
@@ -164,6 +169,29 @@ def borrar_usuario(cfg: PortainerConfig, username: str) -> bool:
         return False
 
     print(f'  Usuario "{username}" (ID {user_id}) borrado correctamente.')
+    return True
+
+
+def configurar_ajustes(cfg: PortainerConfig, ajustes: dict) -> bool:
+    """Actualiza los ajustes globales de Portainer via PUT /api/settings.
+
+    Args:
+        cfg: configuración de Portainer.
+        ajustes: diccionario con los pares clave/valor a actualizar
+                 (p. ej. {"KubectlShellImage": "widemos/kubectl-shell:2026022805"}).
+
+    Devuelve True si la actualización se realizó correctamente.
+    """
+    r = requests.put(
+        cfg.portainer_url + '/api/settings',
+        headers=cfg.headers,
+        json=ajustes,
+        verify=False,
+    )
+    if r.status_code not in (requests.codes.ok, requests.codes.no_content):
+        print(f'Error al actualizar los ajustes: {r.status_code} {r.text}')
+        return False
+    print("Ajustes actualizados correctamente.")
     return True
 
 

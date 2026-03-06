@@ -16,6 +16,7 @@ help: _header
 	@echo --------------------------------
 	@echo crear-usuarios
 	@echo borrar-usuarios
+	@echo configurar
 	@echo --------------------------------
 	@echo workspace
 	@echo clean
@@ -34,6 +35,9 @@ crear-usuarios:
 
 borrar-usuarios:
 	@docker compose run -q --rm workspace poetry run python3 scripts/borrar_usuarios.py
+
+configurar:
+	@docker compose run -q --rm workspace poetry run python3 scripts/configurar_portainer.py
 
 workspace:
 	@docker compose run -q --rm workspace /bin/bash
