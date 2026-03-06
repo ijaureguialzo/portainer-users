@@ -8,9 +8,9 @@ services:
     hostname: workspace
     environment:
       - PORTAINER_URL=${PORTAINER_URL}
+      - KUBECONFIG=/secrets/.kubeconfig
     volumes:
       - .:/app:ro
-      - ./.kubeconfig:/root/.kube/config:ro
       - secrets:/secrets
 
 volumes:
