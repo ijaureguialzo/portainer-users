@@ -1,14 +1,17 @@
 import sys
+from pathlib import Path
 
 import click
 
 from portainer_lib import (
     configurar_ajustes,
     configurar_endpoint,
+    configurar_storage_classes,
     load_config,
     marcar_namespaces_sistema,
 )
 
+SCRIPTS_DIR = Path(__file__).parent
 cfg = load_config()
 
 if not cfg.kubectl_shell_image:
@@ -59,6 +62,24 @@ print("\nAplicando configuración del endpoint en Portainer...")
 ok_endpoint = configurar_endpoint(cfg)
 if not ok_endpoint:
     print("Error al configurar el endpoint. Revisa los mensajes anteriores.")
+    raise SystemExit(1)
+
+# ---------------------------------------------------------------------------
+# Storage Classes
+# ---------------------------------------------------------------------------
+STORAGE_CLASSES_FILE = SCRIPTS_DIR / 'storageclasses.json'
+print("\n--- Configuración de Storage Classes ---")
+print(f"\nSe actualizarán las StorageClasses del endpoint 1 con el contenido de:")
+print(f"  {STORAGE_CLASSES_FILE}")
+respuesta = click.prompt("¿Confirmas el cambio? [s/N]", default="N")
+if respuesta.lower() not in ("s", "si", "sí"):
+    print("Operación cancelada.")
+    raise SystemExit(0)
+
+print("\nAplicando StorageClasses en Portainer...")
+ok_sc = configurar_storage_classes(cfg, str(STORAGE_CLASSES_FILE))
+if not ok_sc:
+    print("Error al configurar las StorageClasses. Revisa los mensajes anteriores.")
     raise SystemExit(1)
 
 # ---------------------------------------------------------------------------

@@ -88,6 +88,55 @@ def generar_nombres_usuarios(nombre: str, separador: str, inicial: int, final: i
     return [nombre + separador + "{0:0>2}".format(i) for i in range(inicial, final + 1)]
 
 
+def _merge_deep(base: dict, overrides: dict) -> dict:
+    """Fusiona *overrides* sobre *base* de forma recursiva.
+
+    Los valores escalares de *overrides* sobreescriben a los de *base*.
+    Los dicts se fusionan recursivamente; las listas se reemplazan por completo.
+    Devuelve un nuevo dict sin modificar los originales.
+    """
+    result = dict(base)
+    for key, value in overrides.items():
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            result[key] = _merge_deep(result[key], value)
+        else:
+            result[key] = value
+    return result
+
+
+def _get_endpoint(cfg: PortainerConfig, endpoint_id: int) -> dict | None:
+    """Lee el estado actual de un endpoint de Portainer.
+
+    Devuelve el dict con los datos del endpoint, o None si hay error.
+    """
+    r = requests.get(
+        cfg.portainer_url + f'/api/endpoints/{endpoint_id}',
+        headers=cfg.headers,
+        verify=False,
+    )
+    if r.status_code != requests.codes.ok:
+        print(f'Error al leer el endpoint {endpoint_id}: {r.status_code} {r.text}')
+        return None
+    return r.json()
+
+
+def _put_endpoint(cfg: PortainerConfig, endpoint_id: int, payload: dict) -> bool:
+    """Hace PUT /api/endpoints/{id} con *payload*.
+
+    Devuelve True si tuvo éxito.
+    """
+    r = requests.put(
+        cfg.portainer_url + f'/api/endpoints/{endpoint_id}',
+        headers=cfg.headers,
+        json=payload,
+        verify=False,
+    )
+    if r.status_code not in (requests.codes.ok, requests.codes.no_content):
+        print(f'Error al actualizar el endpoint {endpoint_id}: {r.status_code} {r.text}')
+        return False
+    return True
+
+
 # ---------------------------------------------------------------------------
 # Clientes de Kubernetes
 # ---------------------------------------------------------------------------
@@ -215,14 +264,18 @@ def configurar_ajustes(cfg: PortainerConfig, ajustes: dict) -> bool:
 
 
 def configurar_endpoint(cfg: PortainerConfig, endpoint_id: int = 1) -> bool:
-    """Actualiza las propiedades del endpoint de Portainer via PUT /api/endpoints/{id}.
+    """Actualiza las propiedades Name, PublicURL y Kubernetes.Configuration del endpoint.
 
-    Aplica los valores de Name, PublicURL y la configuración de Kubernetes
-    (RestrictDefaultNamespace, AllowNoneIngressClass) leídos desde cfg.
+    Lee el estado actual del endpoint, fusiona los nuevos valores y hace PUT,
+    de modo que no sobreescribe otras claves ya presentes (p. ej. StorageClasses).
 
     Devuelve True si la actualización se realizó correctamente.
     """
-    payload = {
+    actual = _get_endpoint(cfg, endpoint_id)
+    if actual is None:
+        return False
+
+    overrides = {
         "Name": cfg.endpoint_name,
         "PublicURL": cfg.endpoint_public_url,
         "Kubernetes": {
@@ -232,18 +285,57 @@ def configurar_endpoint(cfg: PortainerConfig, endpoint_id: int = 1) -> bool:
             }
         },
     }
-    r = requests.put(
-        cfg.portainer_url + f'/api/endpoints/{endpoint_id}',
-        headers=cfg.headers,
-        json=payload,
-        verify=False,
-    )
-    if r.status_code not in (requests.codes.ok, requests.codes.no_content):
-        print(f'Error al actualizar el endpoint {endpoint_id}: {r.status_code} {r.text}')
+    payload = _merge_deep(actual, overrides)
+
+    if not _put_endpoint(cfg, endpoint_id, payload):
         return False
 
     print(f"Endpoint {endpoint_id} actualizado correctamente.")
     return True
+
+
+def configurar_storage_classes(
+    cfg: PortainerConfig,
+    storage_classes_path: str,
+    endpoint_id: int = 1,
+) -> bool:
+    """Actualiza el endpoint fusionando el contenido de *storage_classes_path*.
+
+    Lee el estado actual del endpoint, fusiona en profundidad el JSON del fichero
+    y hace PUT, preservando todas las claves que no estén en el fichero
+    (p. ej. Name, PublicURL, RestrictDefaultNamespace…).
+
+    Devuelve True si la actualización se realizó correctamente.
+    """
+    try:
+        with open(storage_classes_path, 'r') as f:
+            overrides = json.load(f)
+    except FileNotFoundError:
+        print(f'Error: no se encontró el fichero "{storage_classes_path}".')
+        return False
+    except json.JSONDecodeError as e:
+        print(f'Error al parsear "{storage_classes_path}": {e}')
+        return False
+
+    actual = _get_endpoint(cfg, endpoint_id)
+    if actual is None:
+        return False
+
+    payload = _merge_deep(actual, overrides)
+
+    if not _put_endpoint(cfg, endpoint_id, payload):
+        return False
+
+    n = len(
+        overrides.get('Kubernetes', {})
+        .get('Configuration', {})
+        .get('StorageClasses', [])
+    )
+    print(f"StorageClasses del endpoint {endpoint_id} actualizadas correctamente ({n} clases).")
+    return True
+
+
+def crear_namespace(cfg: PortainerConfig, namespace: str) -> None:
     """Crea un namespace en Kubernetes a través de Portainer."""
     data = {"Name": namespace}
     r = requests.post(

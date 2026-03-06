@@ -1,0 +1,29 @@
+{
+  "Kubernetes": {
+    "Configuration": {
+      "StorageClasses": [
+        {
+          "Name": "rook-ceph-block",
+          "AccessModes": [
+            "RWO",
+            "RWX"
+          ],
+          "Provisioner": "rook-ceph.rbd.csi.ceph.com",
+          "AllowVolumeExpansion": true
+        },
+        {
+          "Name": "rook-cephfs",
+          "AccessModes": [
+            "RWO",
+            "RWX"
+          ],
+          "Provisioner": "rook-ceph.cephfs.csi.ceph.com",
+          "AllowVolumeExpansion": true
+        }
+      ]
+    },
+    "Flags": {
+      "IsServerStorageDetected": true
+    }
+  }
+}
