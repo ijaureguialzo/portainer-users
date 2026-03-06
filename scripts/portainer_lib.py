@@ -1,5 +1,6 @@
 """Librería compartida para la gestión de usuarios y recursos de Portainer/Kubernetes."""
 
+import fnmatch
 import json
 import os
 import sys
@@ -657,11 +658,11 @@ def marcar_namespaces_sistema(cfg: PortainerConfig) -> bool:
         print('No se encontraron namespaces en el endpoint.')
         return True
 
-    normales = set(cfg.system_namespaces)
+    patrones_normales = cfg.system_namespaces
     ok = True
 
     for nombre in nombres:
-        es_sistema = nombre not in normales
+        es_sistema = not any(fnmatch.fnmatch(nombre, patron) for patron in patrones_normales)
         resp = requests.put(
             cfg.portainer_url + f'/api/kubernetes/1/namespaces/{nombre}/system',
             headers=cfg.headers,
