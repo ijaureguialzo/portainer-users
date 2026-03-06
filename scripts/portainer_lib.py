@@ -60,7 +60,7 @@ def load_config(token_path: str = '/root/.token') -> PortainerConfig:
         kubectl_shell_image=os.environ.get('KUBECTL_SHELL_IMAGE', ''),
         system_namespaces=[
             ns.strip()
-            for ns in os.environ.get('SYSTEM_NAMESPACES', '').split(',')
+            for ns in os.environ.get('NON_SYSTEM_NAMESPACES', '').split(',')
             if ns.strip()
         ],
     )

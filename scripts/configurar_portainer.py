@@ -45,7 +45,7 @@ configurar_ajustes(cfg, AJUSTES)
 # ---------------------------------------------------------------------------
 print("\n--- Marcar namespaces de sistema ---")
 print(
-    f"\nNamespaces que se mantendrán como normales (SYSTEM_NAMESPACES): "
+    f"\nNamespaces que se mantendrán como normales (NON_SYSTEM_NAMESPACES): "
     f"{cfg.system_namespaces or ['(ninguno)']}"
 )
 print("El resto de namespaces del endpoint se marcarán como 'sistema'.")
