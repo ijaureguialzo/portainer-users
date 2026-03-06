@@ -1,2 +1,3 @@
 PORTAINER_URL=http://localhost
 KUBECTL_SHELL_IMAGE=widemos/kubectl-shell:2026022805
+SYSTEM_NAMESPACES=default

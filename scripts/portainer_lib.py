@@ -35,6 +35,7 @@ class PortainerConfig:
     k8s_max_retries: int
     token: str
     kubectl_shell_image: str = ''
+    system_namespaces: list[str] = field(default_factory=list)
     headers: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -56,6 +57,11 @@ def load_config(token_path: str = '/root/.token') -> PortainerConfig:
         k8s_max_retries=int(os.environ.get('K8S_MAX_RETRIES', '5')),
         token=token,
         kubectl_shell_image=os.environ.get('KUBECTL_SHELL_IMAGE', ''),
+        system_namespaces=[
+            ns.strip()
+            for ns in os.environ.get('SYSTEM_NAMESPACES', '').split(',')
+            if ns.strip()
+        ],
     )
 
 
@@ -609,3 +615,67 @@ def eliminar_subject_cluster_role_binding(
     except client.exceptions.ApiException as e:
         print(f'  Error al actualizar el ClusterRoleBinding: {e}')
         return False
+
+
+# ---------------------------------------------------------------------------
+# Namespaces de sistema
+# ---------------------------------------------------------------------------
+
+
+def marcar_namespaces_sistema(cfg: PortainerConfig) -> bool:
+    """Marca como 'sistema' en Portainer todos los namespaces del endpoint 1
+    que NO estén incluidos en cfg.system_namespaces.
+
+    Los namespaces incluidos en cfg.system_namespaces se tratan como namespaces
+    normales (se des-marcan como sistema si estuvieran marcados).
+
+    Devuelve True si la operación se completó sin errores.
+    """
+    # 1. Obtener la lista de namespaces del endpoint
+    r = requests.get(
+        cfg.portainer_url + '/api/kubernetes/1/namespaces',
+        headers=cfg.headers,
+        verify=False,
+    )
+    if r.status_code != requests.codes.ok:
+        print(f'Error al obtener los namespaces del endpoint: {r.status_code} {r.text}')
+        return False
+
+    namespaces_data = r.json()
+    # La API de Portainer devuelve un dict cuyas CLAVES son los nombres de namespace.
+    # Los valores son los objetos con los detalles de cada namespace.
+    if isinstance(namespaces_data, dict):
+        nombres = [k for k in namespaces_data.keys() if k]
+    else:
+        nombres = [
+            ns.get('Name') or ns.get('name') or ns.get('metadata', {}).get('name', '')
+            for ns in namespaces_data
+        ]
+        nombres = [n for n in nombres if n]
+
+    if not nombres:
+        print('No se encontraron namespaces en el endpoint.')
+        return True
+
+    normales = set(cfg.system_namespaces)
+    ok = True
+
+    for nombre in nombres:
+        es_sistema = nombre not in normales
+        resp = requests.put(
+            cfg.portainer_url + f'/api/kubernetes/1/namespaces/{nombre}/system',
+            headers=cfg.headers,
+            json={"System": es_sistema},
+            verify=False,
+        )
+        if resp.status_code not in (requests.codes.ok, requests.codes.no_content):
+            print(
+                f'  Error al marcar namespace "{nombre}" '
+                f'(System={es_sistema}): {resp.status_code} {resp.text}'
+            )
+            ok = False
+        else:
+            estado = "sistema" if es_sistema else "normal"
+            print(f'  Namespace "{nombre}" marcado como {estado}.')
+
+    return ok
