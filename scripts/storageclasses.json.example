@@ -5,8 +5,7 @@
         {
           "Name": "rook-ceph-block",
           "AccessModes": [
-            "RWO",
-            "RWX"
+            "RWO"
           ],
           "Provisioner": "rook-ceph.rbd.csi.ceph.com",
           "AllowVolumeExpansion": true
