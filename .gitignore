@@ -76,3 +76,5 @@ Temporary Items
 .token
 
 .kubeconfig
+
+scripts/storageclasses.json
